@@ -33,3 +33,5 @@ class World:
         while elems:
             elems.pop().remove()
         elems.append(ax.text(-4.4, 4.5, "t = " + str(i), fontsize=10))
+        for obj in self.objects:
+            obj.draw(ax, elems)
