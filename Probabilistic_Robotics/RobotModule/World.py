@@ -3,9 +3,11 @@ import matplotlib.animation as anm
 
 
 class World:
-    def __init__(self, debug=False):
+    def __init__(self, time_span=10, time_interval=10, debug=False):
         self.objects = []
         self.debug = debug
+        self.time_span = time_span
+        self.interval = time_interval
 
     def append(self, obj):
         self.objects.append(obj)
@@ -26,7 +28,7 @@ class World:
                 self.step(i, elems, ax)
         else:
             self.ani = anm.FuncAnimation(fig, self.step, fargs=(elems, ax),
-                                         frames=1000, interval=500, repeat=False)
+                                         frames=1000, interval=100, repeat=False)
             plt.show()
 
     def step(self, i, elems, ax):
@@ -36,4 +38,4 @@ class World:
         for obj in self.objects:
             obj.draw(ax, elems)
             if hasattr(obj, "step"):
-                obj.step(1.0)
+                obj.step(self.interval)
