@@ -26,7 +26,7 @@ class World:
                 self.step(i, elems, ax)
         else:
             self.ani = anm.FuncAnimation(fig, self.step, fargs=(elems, ax),
-                                         frames=10, interval=100, repeat=False)
+                                         frames=1000, interval=500, repeat=False)
             plt.show()
 
     def step(self, i, elems, ax):
@@ -35,3 +35,5 @@ class World:
         elems.append(ax.text(-4.4, 4.5, "t = " + str(i), fontsize=10))
         for obj in self.objects:
             obj.draw(ax, elems)
+            if hasattr(obj, "step"):
+                obj.step(1.0)
