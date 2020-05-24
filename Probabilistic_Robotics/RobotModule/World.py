@@ -28,13 +28,13 @@ class World:
                 self.step(i, elems, ax)
         else:
             self.ani = anm.FuncAnimation(fig, self.step, fargs=(elems, ax),
-                                         frames=1000, interval=100, repeat=False)
+                                         frames=int(self.time_span/self.interval)+1, interval=self.interval*1000, repeat=False)
             plt.show()
 
     def step(self, i, elems, ax):
         while elems:
             elems.pop().remove()
-        elems.append(ax.text(-4.4, 4.5, "t = " + str(i), fontsize=10))
+        elems.append(ax.text(-4.4, 4.5, 't= {:.2f}[s]'.format(i*self.interval), fontsize=10))
         for obj in self.objects:
             obj.draw(ax, elems)
             if hasattr(obj, "step"):

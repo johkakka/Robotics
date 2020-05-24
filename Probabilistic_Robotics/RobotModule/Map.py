@@ -21,4 +21,4 @@ class Landmark:
     def draw(self, ax, elems):
         c = ax.scatter(self.pos[0], self.pos[1], s=100, marker="*", label="lamdmarks", color="orange")
         elems.append(c)
-        elems.append(ax.text(self.pos[0], self.pos[1], "id"+ str(self.id), fontsize=10))
+        elems.append(ax.text(self.pos[0], self.pos[1], "id:"+ str(self.id), fontsize=10))
