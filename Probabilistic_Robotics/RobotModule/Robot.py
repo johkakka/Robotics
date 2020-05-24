@@ -23,13 +23,16 @@ class Robot:
 
         self.poses.append(self.pose)
         elems += ax.plot([e[0] for e in self.poses], [e[1] for e in self.poses], linewidth=0.5, color="black")
-        if self.sensor and len(self.pose) > 1:
-            self.sensor.draw(ax, elems, self.pose[-2])
+        if self.sensor is not None and len(self.poses) > 1:
+            self.sensor.draw(ax, elems, self.poses[-2])
+        if self.agent is not None and hasattr(self.agent, "draw"):
+            self.agent.draw(ax, elems)
 
     def step(self, interval):
         if self.agent is None:
             return
-        nu, omege = self.agent.decision()
+        obs = self.sensor.data(self.pose) if self.sensor is not None else None
+        nu, omege = self.agent.decision(obs)
         self.pose = self.state_transition(nu, omege, interval, self.pose)
 
     @classmethod
@@ -46,15 +49,26 @@ class Robot:
 
 
 class Camera:
-    def __init__(self, env_map):
+    def __init__(self, env_map,
+                 distance_range=(0.5, 6.0),
+                 direction_range=(-math.pi/3, math.pi/3)):
         self.map = env_map
         self.lastdata = []
+        self.distance_range = distance_range
+        self.direction_range = direction_range
+
+    def is_visible(self, polarpos):
+        if polarpos is None:
+            return False
+        return self.distance_range[0] <= polarpos[0] <= self.distance_range[1] and \
+               self.distance_range[0] <= polarpos[1] <= self.direction_range[1]
 
     def data(self, cam_pose):
         observed = []
         for lm in self.map.landmarks:
             p = self.observation_function(cam_pose, lm.pos)
-            observed.append((p,lm.id))
+            if self.is_visible(p):
+                observed.append((p, lm.id))
 
         self.lastdata = observed
         return observed
