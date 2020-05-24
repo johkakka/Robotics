@@ -4,12 +4,13 @@ import numpy as np
 
 
 class Robot:
-    def __init__(self, pose, agent=None, color="black"):
+    def __init__(self, pose, agent=None, sensor=None, color="black"):
         self.pose = pose
         self.r = 0.2
         self.color = color
         self.agent = agent
         self.poses = [pose]
+        self.sensor = sensor
 
     def draw(self, ax, elems):
         x, y, theta = self.pose
@@ -22,6 +23,8 @@ class Robot:
 
         self.poses.append(self.pose)
         elems += ax.plot([e[0] for e in self.poses], [e[1] for e in self.poses], linewidth=0.5, color="black")
+        if self.sensor and len(self.pose) > 1:
+            self.sensor.draw(ax, elems, self.pose[-2])
 
     def step(self, interval):
         if self.agent is None:
@@ -45,6 +48,7 @@ class Robot:
 class Camera:
     def __init__(self, env_map):
         self.map = env_map
+        self.lastdata = []
 
     def data(self, cam_pose):
         observed = []
@@ -52,6 +56,7 @@ class Camera:
             p = self.observation_function(cam_pose, lm.pos)
             observed.append((p,lm.id))
 
+        self.lastdata = observed
         return observed
 
     @classmethod
@@ -63,3 +68,11 @@ class Camera:
         while phi < - np.pi:
             phi += 2 * np.pi
         return np.array([np.hypot(*diff), phi]).T
+
+    def draw(self, ax, elems, cam_pose):
+        for lm in self.lastdata:
+            x, y, theta = cam_pose
+            distance, direction = lm[0][0], lm[0][1]
+            lx = x + distance * math.cos(direction + theta)
+            ly = y + distance * math.sin(direction + theta)
+            elems += ax.plot([x, lx], [y, ly], color='pink')
