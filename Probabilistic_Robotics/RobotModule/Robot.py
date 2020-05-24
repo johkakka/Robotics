@@ -1,9 +1,10 @@
 import math
 import matplotlib.patches as patches
 import numpy as np
+from scipy.stats import expon, norm
 
 
-class Robot:
+class IdealRobot:
     def __init__(self, pose, agent=None, sensor=None, color="black"):
         self.pose = pose
         self.r = 0.2
@@ -46,6 +47,39 @@ class Robot:
             return pose + np.array([nu / omega * (math.sin(t0 + omega * time) - math.sin(t0)),
                                     nu / omega * (-math.cos(t0 + omega * time) + math.cos(t0)),
                                     omega]) * time
+
+
+class Robot(IdealRobot):
+    def __init__(self, pose, agent=None, sensor=None, color='black',
+                 noise_par_matre=5, noise_std=math.pi/60,
+                 bias_rate_stds=(0.1,0.1)):
+        super().__init__(pose, agent, sensor, color)
+        self.noise_pdf = expon(scale=1.0/(1e-100 + noise_par_matre))
+        self.distance_until_noise = self.noise_pdf.rvs()
+        self.theta_noise = norm(scale=noise_std)
+        self.bias_rate_nu = norm.rvs(loc=1.0, scale=bias_rate_stds[0])
+        self.bias_rate_omega = norm.rvs(loc=1.0, scale=bias_rate_stds[1])
+
+    def noise(self, pose, nu, omega, time_interval):
+        self.distance_until_noise -= abs(nu)*time_interval + self.r*abs(omega)*time_interval
+        if self.distance_until_noise <= 0.0:
+            self.distance_until_noise += self.noise_pdf.rvs()
+            pose[2] += self.theta_noise.rvs()
+
+        return pose
+
+    def bias(self, nu, omega):  # 追加
+        return nu * self.bias_rate_nu, omega * self.bias_rate_omega
+
+    def step(self, interval):
+        if self.agent is None:
+            return
+        obs = self.sensor.data(self.pose) if self.sensor else None
+        nu, omega = self.agent.decision(obs)
+        nu, omega = self.bias(nu, omega)
+        self.pose = self.state_transition(nu, omega, interval, self.pose)
+        self.pose = self.noise(self.pose, nu, omega, interval)
+
 
 
 class Camera:
