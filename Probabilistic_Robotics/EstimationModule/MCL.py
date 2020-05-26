@@ -3,6 +3,7 @@ from Robot import *
 import math
 import numpy as np
 from scipy.stats import multivariate_normal
+import copy
 
 
 class EstimationAgent(Agent):
@@ -21,6 +22,9 @@ class EstimationAgent(Agent):
 
     def draw(self, ax, elems):
         self.estimator.draw(ax, elems)
+        x, y, t = self.estimator.pose
+        s = "({:.2f}, {:.2f}, {})".format(x, y, int(t * 180 / math.pi) % 360)
+        elems.append(ax.text(x, y + 0.1, s, fontsize=8))
 
 
 class Particle:
@@ -63,12 +67,41 @@ class MCL:
         c = np.diag([v["nn"] ** 2, v["no"] ** 2, v["on"] ** 2, v["oo"] ** 2])
         self.motion_noise_rate_pdf = multivariate_normal(cov=c)
 
+        self.ml = self.particles[0]
+        self.pose = self.ml.pose
+
+    def set_ml(self):
+        index = np.argmax([p.weight for p in self.particles])
+        self.ml = self.particles[index]
+        self.pose = self.ml.pose
+
     def update(self, nu, omega, time):
         for p in self.particles: p.update(nu, omega, time, self.motion_noise_rate_pdf)
 
     def observation_update(self, observation):
-        for p in self.particles: p.observation_update(observation, self.map, self.distance_dev_rate,
-                                                      self.direction_dev)
+        for p in self.particles:
+            p.observation_update(observation, self.map, self.distance_dev_rate, self.direction_dev)
+        self.set_ml()
+        self.resampling()
+
+    def resampling(self):
+        ws = np.cumsum([e.weight for e in self.particles]) #累積和
+        if ws[-1] < 1e-100: ws = [e + 1e-100 for e in ws]
+
+        step = ws[-1] / len(self.particles)
+        r = np.random.uniform(0.0, step)
+        cur_pos = 0
+        ps = []  # 抽出するパーティクルのリスト
+
+        while (len(ps) < len(self.particles)):
+            if r < ws[cur_pos]:
+                ps.append(self.particles[cur_pos])
+                r += step
+            else:
+                cur_pos += 1
+
+        self.particles = [copy.deepcopy(e) for e in ps]
+        for p in self.particles: p.weight = 1.0 / len(self.particles)
 
     def draw(self, ax, elems):  # 次のように変更
         xs = [p.pose[0] for p in self.particles]
