@@ -133,7 +133,7 @@ class IdealCamera:
         if polarpos is None:
             return False
         return self.distance_range[0] <= polarpos[0] <= self.distance_range[1] and \
-               self.distance_range[0] <= polarpos[1] <= self.direction_range[1]
+               self.direction_range[0] <= polarpos[1] <= self.direction_range[1]
 
     def data(self, cam_pose):
         observed = []
